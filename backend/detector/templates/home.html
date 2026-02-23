@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Skin Cancer AI</title>
+</head>
+<body>
+    <h1>Welcome to Skin Cancer Detection AI</h1>
+    <p>Upload your skin image to predict Benign or Melanoma</p>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Upload</button>
+    </form>
+
+    {% if uploaded_file_url %}
+        <h2>Uploaded Image:</h2>
+        <img src="{{ uploaded_file_url }}" width="300px">
+    {% endif %}
+</body>
+</html>
