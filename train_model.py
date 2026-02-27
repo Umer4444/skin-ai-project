@@ -7,6 +7,7 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import ReduceLROnPlateau
 from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.utils.class_weight import compute_class_weight
 
 # --------------------
 # CONFIG
@@ -29,7 +30,6 @@ train_gen = ImageDataGenerator(
     height_shift_range=0.1,
     zoom_range=0.3,
     horizontal_flip=True,
-    vertical_flip=True
 )
 
 val_gen = ImageDataGenerator(rescale=1./255)
@@ -58,7 +58,23 @@ test_data = test_gen.flow_from_directory(
 )
 
 # --------------------
-# MODEL
+# CLASS WEIGHTS (VERY IMPORTANT)
+# --------------------
+weights = compute_class_weight(
+    class_weight="balanced",
+    classes=np.array([0, 1]),
+    y=train_data.classes
+)
+
+class_weights = {
+    0: weights[0],  # benign
+    1: weights[1]   # melanoma
+}
+
+print("Class Weights:", class_weights)
+
+# --------------------
+# MODEL (TRANSFER LEARNING)
 # --------------------
 base_model = EfficientNetB0(
     weights="imagenet",
@@ -66,12 +82,8 @@ base_model = EfficientNetB0(
     input_shape=(224, 224, 3)
 )
 
-# Unfreeze last 50 layers for fine-tuning
-for layer in base_model.layers[:-50]:
-    layer.trainable = False
-
-for layer in base_model.layers[-50:]:
-    layer.trainable = True
+# Freeze base model (STEP 1)
+base_model.trainable = False
 
 x = base_model.output
 x = GlobalAveragePooling2D()(x)
@@ -81,11 +93,8 @@ output = Dense(1, activation="sigmoid")(x)
 
 model = Model(inputs=base_model.input, outputs=output)
 
-# --------------------
-# COMPILE
-# --------------------
 model.compile(
-    optimizer=Adam(learning_rate=1e-5),
+    optimizer=Adam(learning_rate=1e-4),
     loss="binary_crossentropy",
     metrics=["accuracy", tf.keras.metrics.AUC(name="auc")]
 )
@@ -93,19 +102,18 @@ model.compile(
 model.summary()
 
 # --------------------
-# CLASS WEIGHTS
-# --------------------
-class_weights = {0: 1.0, 1: 1.2}  # slight preference for melanoma
-
-# --------------------
-# CALLBACKS
+# CALLBACK
 # --------------------
 lr_callback = ReduceLROnPlateau(
-    monitor='val_auc', factor=0.5, patience=3, verbose=1, min_lr=1e-6
+    monitor="val_auc",
+    factor=0.5,
+    patience=3,
+    min_lr=1e-6,
+    verbose=1
 )
 
 # --------------------
-# TRAIN
+# TRAIN (STAGE 1)
 # --------------------
 history = model.fit(
     train_data,
@@ -116,10 +124,10 @@ history = model.fit(
 )
 
 # --------------------
-# EVALUATE
+# EVALUATION
 # --------------------
 pred_probs = model.predict(test_data)
-pred_labels = (pred_probs > 0.3).astype(int)  # lower threshold for early warning
+pred_labels = (pred_probs > 0.35).astype(int)
 
 print("\nCLASSIFICATION REPORT:")
 print(classification_report(test_data.classes, pred_labels))
