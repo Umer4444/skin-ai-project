@@ -8,6 +8,7 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import ReduceLROnPlateau
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.utils.class_weight import compute_class_weight
+from tensorflow.keras.applications.efficientnet import preprocess_input
 
 # --------------------
 # CONFIG
@@ -24,16 +25,21 @@ TEST_DIR = "data/test"
 # DATA GENERATORS
 # --------------------
 train_gen = ImageDataGenerator(
-    rescale=1./255,
+    preprocessing_function=preprocess_input,
     rotation_range=30,
     width_shift_range=0.1,
     height_shift_range=0.1,
     zoom_range=0.3,
-    horizontal_flip=True,
+    horizontal_flip=True
 )
 
-val_gen = ImageDataGenerator(rescale=1./255)
-test_gen = ImageDataGenerator(rescale=1./255)
+val_gen = ImageDataGenerator(
+    preprocessing_function=preprocess_input
+)
+
+test_gen = ImageDataGenerator(
+    preprocessing_function=preprocess_input
+)
 
 train_data = train_gen.flow_from_directory(
     TRAIN_DIR,
