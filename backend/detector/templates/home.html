@@ -4,7 +4,7 @@
     <title>Skin Cancer AI</title>
 </head>
 <body>
-    <h1>Welcome to Skin Cancer Detection AI</h1>
+    <h1>Skin Cancer Detection AI</h1>
     <p>Upload your skin image to predict Benign or Melanoma</p>
 
     <form method="post" enctype="multipart/form-data">
@@ -14,8 +14,24 @@
     </form>
 
     {% if uploaded_file_url %}
-        <h2>Uploaded Image:</h2>
-        <img src="{{ uploaded_file_url }}" width="300px">
+        <hr>
+
+        <h2>Uploaded Image</h2>
+        <img src="{{ uploaded_file_url }}" width="300">
+
+        <h2>Prediction Result</h2>
+        <p><strong>Diagnosis:</strong> {{ label }}</p>
+        <p><strong>Confidence:</strong> {{ confidence }}%</p>
+
+        {% if heatmap_url %}
+            <h2>Grad-CAM Heatmap</h2>
+            <img src="{{ heatmap_url }}" width="300">
+        {% endif %}
+
+        {% if overlay_url %}
+            <h2>Model Attention Overlay</h2>
+            <img src="{{ overlay_url }}" width="300">
+        {% endif %}
     {% endif %}
 </body>
 </html>
